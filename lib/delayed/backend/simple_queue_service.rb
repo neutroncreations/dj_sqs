@@ -6,7 +6,7 @@ module Delayed
         attr_accessor :handler
 
         def initialize data = {}
-          print data.to_yaml
+          #print data.to_yaml
 
           data.symbolize_keys!
           payload_obj = data.delete(:payload_object) || data.delete(:handler)
@@ -14,32 +14,31 @@ module Delayed
           @attributes = data
           self.payload_object = payload_obj
 
-          @sqs = Fog::AWS::SQS.new(
-            :aws_access_key_id => ENV['AWS_SQS_KEY'],
-            :aws_secret_access_key => ENV['AWS_SQS_SECRET'],
-            :region => ENV['AWS_SQS_REGION']
-          )
-          @queue_url = ENV['AWS_SQS_URL']
+        end
 
+        def payload_object=(object)
+          if object.is_a? String
+            @payload_object = YAML.load(object)
+            self.handler = object
+          else
+            @payload_object = object
+            self.handler = object.to_yaml
+          end
         end
 
         def save
 
           payload = MultiJson.dump(@attributes.merge(:payload_object => YAML.dump(payload_object)))
 
-          puts "[SAVE] #{payload.inspect}"
+          #puts "[SAVE] #{payload.inspect}"
 
-          @sqs.send_message(@queue_url, payload)
+          Delayed::Worker.sqs.send_message(Delayed::Worker.config.queue_url, payload)
 
           true
         end
 
         def save!
           save
-        end
-
-        def find_available
-          
         end
 
         def update_attributes(attributes)
@@ -63,12 +62,51 @@ module Delayed
           super
         end
 
+        def last_error= error
+          @attributes[:last_error] = error
+        end
+
+        def attempts
+          @attributes[:attempts] || 0
+        end
+        def attempts= num
+          @attributes[:attempts] = num
+        end
+
+        def run_at= ts
+          @attributes[:run_at] = ts
+        end
+
+        def destroy
+          Delayed::Worker.sqs.delete_message Delayed::Worker.config.queue_url, @attributes[:receipt_handle]
+        end
+
 
 
         
         # No need to check locks
-        def clear_locks!(*args)
+        def self.clear_locks!(*args)
           true
+        end
+
+        def self.db_time_now
+          Time.now.utc
+        end
+
+        def self.find_available worker_name, limit = 2, max_run_time = nil
+          response = Delayed::Worker.sqs.receive_message Delayed::Worker.config.queue_url, { 'Attributes' => [], 'MaxNumberOfMessages' => limit, 'WaitTimeSeconds' => 20 }
+          messages = response.body['Message']
+          objects = []
+          unless messages.empty?
+            messages.each do |m|
+              body = MultiJson.load(m['Body'])
+              body['receipt_handle'] = m['ReceiptHandle']
+              objects << Delayed::Backend::SimpleQueueService::Job.new(body)
+              # print body.inspect
+            end
+          end
+          print '.'
+          objects
         end
       end
     end
