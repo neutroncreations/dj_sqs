@@ -1,6 +1,6 @@
 Gem::Specification.new do |gem|
   gem.name          = 'dj_sqs'
-  gem.version       = '0.0.4'
+  gem.version       = '1.0.0'
   gem.date          = '2013-04-30'
   gem.summary       = "DelayedJob SQS"
   gem.description   = "A SQS delayed job backend"
