@@ -3,11 +3,11 @@ module Delayed
     class << self
       def configure
         yield(config)
-        @sqs = Fog::AWS::SQS.new(
-          :aws_access_key_id => config.aws_access_key_id,
-          :aws_secret_access_key => config.aws_secret_access_key,
+        @sqs = AWS::SQS.new(
+          :access_key_id => config.aws_access_key_id,
+          :secret_access_key => config.aws_secret_access_key,
           :region => config.region
-        )
+        ).queues[config.queue_url]
       end
 
       def config

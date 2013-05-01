@@ -1,5 +1,5 @@
 # encoding: utf-8
-require 'fog'
+require 'aws-sdk'
 require 'multi_json'
 require 'delayed_job'
 

@@ -10,6 +10,6 @@ Gem::Specification.new do |gem|
   gem.require_paths = ['lib']
   gem.homepage      = 'https://github.com/neutroncreations/dj_sqs'
   gem.add_dependency(%q<delayed_job>, ["~> 3.0.0"])
-  gem.add_dependency(%q<fog>, ["~> 1.10"])
+  gem.add_dependency(%q<aws-sdk>, ["~> 1.0"])
   gem.add_dependency(%q<multi_json>, ["~> 1.7"])
 end

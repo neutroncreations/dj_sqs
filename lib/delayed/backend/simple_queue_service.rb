@@ -6,7 +6,13 @@ module Delayed
         attr_accessor :handler
 
         def initialize data = {}
-          #print data.to_yaml
+
+          if data.is_a? AWS::SQS::ReceivedMessage
+            @sqs_message = data
+            data = MultiJson.load(@sqs_message.body)
+          end
+          
+          # print data.to_yaml + "\n\n"
 
           data.symbolize_keys!
           payload_obj = data.delete(:payload_object) || data.delete(:handler)
@@ -32,7 +38,9 @@ module Delayed
 
           #puts "[SAVE] #{payload.inspect}"
 
-          Delayed::Worker.sqs.send_message(Delayed::Worker.config.queue_url, payload)
+          @sqs_message.delete if @sqs_message
+
+          Delayed::Worker.sqs.send_message payload, :delay_seconds => [900,(attempts**3)].min
 
           true
         end
@@ -78,7 +86,7 @@ module Delayed
         end
 
         def destroy
-          Delayed::Worker.sqs.delete_message Delayed::Worker.config.queue_url, @attributes[:receipt_handle]
+          @sqs_message.delete if @sqs_message
         end
 
 
@@ -93,15 +101,13 @@ module Delayed
           Time.now.utc
         end
 
-        def self.find_available worker_name, limit = 2, max_run_time = nil
-          response = Delayed::Worker.sqs.receive_message Delayed::Worker.config.queue_url, { 'Attributes' => [], 'MaxNumberOfMessages' => limit, 'WaitTimeSeconds' => 20 }
-          messages = response.body['Message']
+        def self.find_available worker_name, limit = 5, max_run_time = nil
+          messages = Delayed::Worker.sqs.receive_message :limit => limit, :wait_time_seconds => 20
           objects = []
-          unless messages.empty?
+          if messages
+            messages = [messages] unless messages.is_a? Array
             messages.each do |m|
-              body = MultiJson.load(m['Body'])
-              body['receipt_handle'] = m['ReceiptHandle']
-              objects << Delayed::Backend::SimpleQueueService::Job.new(body)
+              objects << Delayed::Backend::SimpleQueueService::Job.new(m)
               # print body.inspect
             end
           end
