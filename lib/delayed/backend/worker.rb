@@ -7,7 +7,7 @@ module Delayed
           :access_key_id => config.aws_access_key_id,
           :secret_access_key => config.aws_secret_access_key,
           :region => config.region
-        ).queues[config.queue_url]
+        ).queues["https://sqs.#{config.region}.amazonaws.com/#{config.queue_path}"]
       end
 
       def config

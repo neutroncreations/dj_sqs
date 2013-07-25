@@ -11,7 +11,7 @@ module Delayed
             @sqs_message = data
             data = MultiJson.load(@sqs_message.body)
           end
-          
+
           # print data.to_yaml + "\n\n"
 
           data.symbolize_keys!
@@ -20,6 +20,10 @@ module Delayed
           @attributes = data
           self.payload_object = payload_obj
 
+        end
+
+        def id
+          @sqs_message.id
         end
 
         def payload_object=(object)
@@ -91,7 +95,7 @@ module Delayed
 
 
 
-        
+
         # No need to check locks
         def self.clear_locks!(*args)
           true
@@ -108,10 +112,9 @@ module Delayed
             messages = [messages] unless messages.is_a? Array
             messages.each do |m|
               objects << Delayed::Backend::SimpleQueueService::Job.new(m)
-              # print body.inspect
             end
           end
-          print '.'
+          # print '.'
           objects
         end
       end
