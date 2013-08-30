@@ -2,6 +2,8 @@
 
 This is an [SQS](http://aws.amazon.com/sqs/) backend for [delayed_job](http://github.com/collectiveidea/delayed_job)
 
+This is just a rough starting point for using SQS as a job queue for DJ. I recommend you vendor these files and adjust them to suit your needs
+
 # Getting Started
 
 ## Installation
